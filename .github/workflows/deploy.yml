@@ -1,0 +1,119 @@
+name: Deploy HTML Files
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**'
+  workflow_dispatch:
+    inputs:
+      deploy_reason:
+        description: 'Reason for manual deployment'
+        required: false
+        default: 'Manual deployment'
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    
+    env:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      SERVICE_PORT: ${{ secrets.SERVICE_PORT }}
+    
+    steps:
+      - name: Display deployment reason
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Manual deployment triggered"
+          echo "Reason: ${{ github.event.inputs.deploy_reason }}"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -p ${{ secrets.PORT }} -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts || true
+          chmod 644 ~/.ssh/known_hosts
+
+
+      - name: Create .env file on remote server
+        run: |
+          ssh -p ${{ secrets.PORT }} ${{ secrets.SSH_USER }}@${{ secrets.HOST }} "cat > ${{ secrets.REMOTE_PATH }}/.env << 'EOF'
+          DB_HOST=${{ env.DB_HOST }}
+          DB_PORT=${{ env.DB_PORT }}
+          DB_NAME=${{ env.DB_NAME }}
+          DB_USER=${{ env.DB_USER }}
+          DB_PASSWORD=${{ env.DB_PASSWORD }}
+          SERVICE_PORT=${{ env.SERVICE_PORT }}
+          EOF"
+
+      - name: Docker down
+        run: |
+          ssh -p ${{ secrets.PORT }} ${{ secrets.SSH_USER }}@${{ secrets.HOST }} "cd ${{ secrets.REMOTE_PATH }} && docker-compose down"
+
+      - name: Deploy files via SSH
+        run: |
+          rsync -avz --delete \
+            --exclude='.git*' \
+            --exclude='node_modules' \
+            --exclude='database' \
+            --exclude='*.zip' \
+            --exclude='*.jar' \
+            --exclude='.env' \
+            -e "ssh -p ${{ secrets.PORT }}" \
+            . ${{ secrets.SSH_USER }}@${{ secrets.HOST }}:${{ secrets.REMOTE_PATH }}/
+
+      - name: Docker up
+        run: |
+          ssh -p ${{ secrets.PORT }} ${{ secrets.SSH_USER }}@${{ secrets.HOST }} "cd ${{ secrets.REMOTE_PATH }} && docker-compose up -d --build"
+
+      - name: Wait for containers to stabilize
+        run: |
+          echo "Waiting for containers to stabilize..."
+          ssh -p ${{ secrets.PORT }} ${{ secrets.SSH_USER }}@${{ secrets.HOST }} "cd ${{ secrets.REMOTE_PATH }} && \
+            for i in {1..30}; do \
+              echo 'Check #'$i' - Waiting 10 seconds...' && \
+              sleep 10 && \
+              if docker-compose ps | grep -q 'Restarting\|Exit'; then \
+                echo 'Containers still starting/restarting...' && \
+                docker-compose ps; \
+              else \
+                echo 'All containers appear stable' && \
+                docker-compose ps && \
+                break; \
+              fi && \
+              if [ $i -eq 30 ]; then \
+                echo 'ERROR: Containers did not stabilize within 5 minutes' && \
+                docker-compose ps && \
+                docker-compose logs --tail=20 && \
+                exit 1; \
+              fi; \
+            done"
+
+      - name: Verify deplyed containers
+        run: |
+          echo "Final deployment verification..."
+          ssh -p ${{ secrets.PORT }} ${{ secrets.SSH_USER }}@${{ secrets.HOST }} "cd ${{ secrets.REMOTE_PATH }} && \
+            echo 'Final container status:' && \
+            docker-compose ps && \
+            echo '' && \
+            echo 'Container health check:' && \
+            docker-compose ps --format 'table {{.Name}}\t{{.Status}}' | grep -E '(Up|healthy)' && \
+            echo 'Deployment verification completed successfully'"
+
+      # - name: Verify deployment
+      #   run: |
+      #     ssh -p ${{ secrets.PORT }} ${{ secrets.SSH_USER }}@${{ secrets.HOST }} "ls -la ${{ secrets.REMOTE_PATH }}/"

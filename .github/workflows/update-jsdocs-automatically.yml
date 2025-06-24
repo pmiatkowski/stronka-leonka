@@ -1,0 +1,80 @@
+name: Update JSDocs Automatically
+
+# To make this work, you'll need to create a Personal Access Token (PAT) with the required permissions. Here's what you need to do:
+
+# Go to GitHub.com → Settings → Developer Settings → Personal Access Tokens → Fine-grained tokens
+
+# Create a new token with these permissions:
+
+# Repository permissions:
+# Contents: Read and write
+# Pull requests: Read and write
+# Add the token to your repository's secrets:
+
+# Go to your repository → Settings → Secrets and variables → Actions
+# Create a new secret named PAT_GITHUB
+# Paste your PAT as the value
+# The workflow has been updated to:
+
+# Use proper permissions declarations
+# Use the PAT instead of GITHUB_TOKEN
+# Include proper error handling with conditional steps
+# Once you've added the PAT secret, the workflow should be able to create pull requests successfully.
+
+
+
+on:
+  schedule:
+    - cron: "0 0 1 * *"
+  workflow_dispatch: # Allows manual triggering
+
+permissions:
+  contents: write      # Needed to commit changes
+  pull-requests: write # Needed to create pull requests
+
+jobs:
+  update_docs:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Use PAT instead of GITHUB_TOKEN for checkout to ensure PR creation works
+          token: ${{ secrets.PAT_GITHUB }}
+
+      - name: Run AI JSDoc Updater
+        id: ai_jsdoc_updater # Give the step an ID to reference its outputs
+        uses: pmiatkowski/composite-actions/actions/ai-sync-docs@main
+        with:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }} 
+          # Optional: Specify extensions or excluded dirs if defaults aren't suitable
+          # FILE_EXTENSIONS: ".js,.mjs"
+          # EXCLUDED_DIRS: "node_modules,.git,dist,vendor"
+
+      - name: Create Pull Request if changes were made
+        # Only run this step if the previous step reported file updates
+        if: steps.ai_jsdoc_updater.outputs.files-updated-count > 0
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.PAT_GITHUB }} # Use PAT instead of GITHUB_TOKEN
+          commit-message: "chore: Update JSDocs with AI Assistant"
+          committer: GitHub <noreply@github.com> # Optional: Customize committer
+          author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com> # Optional: Customize author
+          signoff: false # Optional: Whether to signoff commits
+          branch: chore/ai-jsdoc-updates # Branch name for the PR
+          delete-branch: true # Automatically delete branch after merging
+          title: "AI JSDoc Updates"
+          body: |
+            Automated JSDoc updates by the AI assistant.
+
+            **Files Updated (${{ steps.ai_jsdoc_updater.outputs.files-updated-count }}):**
+            ```
+            ${{ steps.ai_jsdoc_updater.outputs.updated-files-list }}
+            ```
+          labels: |
+            documentation
+            automated pr
+          assignees: pmiatkowski # Optional: Assign the PR
+          # reviewers: pmiatkowski # Optional: Request reviews
+          # draft: false # Optional: Create as draft PR

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Opinii - komputerowiec-pobierz.pl</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1e1e1e;
+            color: #fff;
+        }
+
+        .agent-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .agent-header h1 {
+            color: #00ff00;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        .opinion-form {
+            background-color: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #00ff00;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #00ff00;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        textarea,
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            background-color: #1e1e1e;
+            color: #fff;
+            box-shadow: inset 0 0 5px rgba(0, 255, 0, 0.2);
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+
+        button {
+            background-color: #006400;
+            color: #fff;
+            padding: 10px 20px;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #008000;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+        }
+
+        .opinions-list {
+            margin-top: 30px;
+        }
+
+        .opinion-item {
+            border: 1px solid #00ff00;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            background-color: #2d2d2d;
+            position: relative;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .delete-button {
+            background-color: #8b0000;
+            color: white;
+            padding: 5px 10px;
+            border: 1px solid #ff0000;
+            border-radius: 4px;
+            cursor: pointer;
+            float: right;
+            transition: all 0.3s ease;
+        }
+
+        .delete-button:hover {
+            background-color: #a00000;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+        }
+
+        .return-button {
+            background-color: #004080;
+            margin-top: 20px;
+            border-color: #0088ff;
+        }
+
+        .return-button:hover {
+            background-color: #0055a0;
+            box-shadow: 0 0 15px rgba(0, 136, 255, 0.4);
+        }
+
+        .agent-status {
+            text-align: center;
+            color: #00ff00;
+            font-family: monospace;
+            margin: 10px 0;
+            min-height: 20px;
+        }
+
+        small {
+            color: #888;
+        }
+
+        .rating-display {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .matrix-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.1;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="matrix" class="matrix-effect"></canvas>
+
+    <div class="agent-header">
+        <h1>System Agenta Opinii</h1>
+        <div class="agent-status" id="agentStatus">System gotowy do przyjmowania opinii...</div>
+    </div>
+
+    <div class="opinion-form">
+        <div class="form-group">
+            <label for="name">Identyfikator Agenta:</label>
+            <input type="text" id="name" required placeholder="Wprowadź swój identyfikator...">
+        </div>
+        <div class="form-group">
+            <label for="opinion">Raport:</label>
+            <textarea id="opinion" rows="4" required placeholder="Wprowadź swoją opinię..."></textarea>
+        </div>
+        <div class="form-group">
+            <label for="rating">Poziom Satysfakcji (1-5):</label>
+            <input type="number" id="rating" min="1" max="5" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Kod Dostępu:</label>
+            <input type="password" id="password" required placeholder="Wprowadź kod dostępu...">
+            <small>Zapamiętaj swój kod dostępu - będzie wymagany do usunięcia raportu</small>
+        </div>
+        <button onclick="submitOpinion()">Zatwierdź Raport</button>
+    </div>
+
+    <h2>Baza Raportów</h2>
+    <div id="opinions-list" class="opinions-list"></div>
+
+    <button onclick="window.location.href='index.html'" class="return-button">Powrót do Głównej Bazy</button>
+
+    <script>
+        // Matrix effect
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        const chars = "アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const charArray = chars.split('');
+        const columns = width / 20;
+        const drops = new Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.fillStyle = '#0F0';
+            ctx.font = '15px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = charArray[Math.floor(Math.random() * charArray.length)];
+                ctx.fillText(text, i * 20, drops[i] * 20);
+
+                if (drops[i] * 20 > height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        setInterval(drawMatrix, 50);
+
+        // Status updates
+        function updateStatus(message, isError = false) {
+            const status = document.getElementById('agentStatus');
+            status.style.color = isError ? '#ff0000' : '#00ff00';
+            status.textContent = message;
+            setTimeout(() => {
+                status.textContent = 'System gotowy do przyjmowania opinii...';
+                status.style.color = '#00ff00';
+            }, 3000);
+        }
+
+        async function fetchOpinions() {
+            try {
+                const response = await fetch('/api/reports');
+                if (!response.ok) {
+                    throw new Error('Błąd podczas pobierania raportów');
+                }
+                const reports = await response.json();
+                displayOpinions(reports);
+            } catch (error) {
+                console.error(error);
+                document.getElementById('opinions-list').innerHTML = '<p>Nie udało się załadować raportów.</p>';
+                updateStatus('Błąd podczas pobierania raportów', true);
+            }
+        }
+
+        async function submitOpinion() {
+            const identyfikator_agenta = document.getElementById('name').value.trim();
+            const raport = document.getElementById('opinion').value.trim();
+            const poziom_satysfakcji = parseInt(document.getElementById('rating').value);
+            const access_code = document.getElementById('password').value;
+
+            if (!identyfikator_agenta || !raport || !poziom_satysfakcji || !access_code) {
+                updateStatus('Błąd: Wszystkie pola muszą być wypełnione', true);
+                return;
+            }
+
+            if (poziom_satysfakcji < 1 || poziom_satysfakcji > 5) {
+                updateStatus('Błąd: Poziom satysfakcji musi być między 1 a 5', true);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/reports', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        identyfikator_agenta,
+                        raport,
+                        poziom_satysfakcji,
+                        access_code
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Błąd podczas zapisywania raportu');
+                }
+
+                document.getElementById('name').value = '';
+                document.getElementById('opinion').value = '';
+                document.getElementById('rating').value = '';
+                document.getElementById('password').value = '';
+
+                fetchOpinions();
+                updateStatus('Raport został pomyślnie zapisany w bazie');
+            } catch (error) {
+                console.error('Błąd podczas zapisywania raportu:', error);
+                updateStatus('Błąd podczas zapisywania raportu', true);
+            }
+        }
+
+        async function deleteOpinion(id) {
+            const access_code = prompt('Wprowadź kod dostępu do usunięcia raportu:');
+            if (!access_code) return;
+
+            try {
+                const response = await fetch(`/api/reports/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ access_code })
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    if (response.status === 403) {
+                        updateStatus('Błąd: Nieprawidłowy kod dostępu', true);
+                    } else if (data.error) {
+                        updateStatus(`Błąd: ${data.error}`, true);
+                    } else {
+                        updateStatus('Błąd podczas usuwania raportu', true);
+                    }
+                    return;
+                }
+
+                fetchOpinions();
+                updateStatus('Raport został pomyślnie usunięty z bazy');
+            } catch (error) {
+                console.error('Błąd podczas usuwania raportu:', error);
+                updateStatus('Błąd podczas usuwania raportu', true);
+            }
+        }
+
+        function displayOpinions(reports) {
+            const opinionsList = document.getElementById('opinions-list');
+            opinionsList.innerHTML = '';
+
+            reports.reverse().forEach((report) => {
+                const opinionElement = document.createElement('div');
+                opinionElement.className = 'opinion-item';
+                opinionElement.innerHTML = `
+                    <button class="delete-button" onclick="deleteOpinion('${report.id}')">Usuń Raport</button>
+                    <strong>Agent: ${report.identyfikator_agenta}</strong> - Poziom Satysfakcji: <span class="rating-display">${report.poziom_satysfakcji}/5</span><br>
+                    <p>${report.raport}</p>
+                `;
+                opinionsList.appendChild(opinionElement);
+            });
+        }
+
+        // Initialize
+        fetchOpinions();
+    </script>
+</body>
+
+</html>

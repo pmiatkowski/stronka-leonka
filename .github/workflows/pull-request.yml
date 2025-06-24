@@ -1,0 +1,21 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: AI Review
+        uses: pmiatkowski/composite-actions/actions/ai-reviewer@main
+        with:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }} 

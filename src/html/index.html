@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Dostępu do Zasobów - komputerowiec-pobierz.pl</title>
+    <style>
+      
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1e1e1e;
+            color: #fff;
+        }
+
+        h1 {
+            color: #00ff00;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #2d2d2d;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button:hover {
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+        }
+
+        .tab-button.active {
+            background-color: #006400;
+            color: white;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+        }
+
+        .program-item {
+            border: 1px solid #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #2d2d2d;
+            margin-bottom: 15px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .download-button {
+            background-color: #006400;
+            color: white;
+            padding: 8px 16px;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .download-button:hover {
+            background-color: #008000;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+        }
+
+        .matrix-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        .agent-header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .agent-status {
+            text-align: center;
+            color: #00ff00;
+            font-family: monospace;
+            margin: 10px 0;
+            min-height: 20px;
+        }
+
+        .program-item h3 {
+            color: #00ff00;
+            margin-top: 0;
+            text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+        }
+
+        .program-item p {
+            color: #a0ffa0;
+            font-family: monospace;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes glitch {
+            0% {
+                text-shadow: 0.05em 0 0 #00fffc, -0.03em -0.04em 0 #fc00ff,
+                    0.025em 0.04em 0 #fffc00;
+            }
+
+            15% {
+                text-shadow: 0.05em 0 0 #00fffc, -0.03em -0.04em 0 #fc00ff,
+                    0.025em 0.04em 0 #fffc00;
+            }
+
+            16% {
+                text-shadow: -0.05em -0.025em 0 #00fffc, 0.025em 0.035em 0 #fc00ff,
+                    -0.05em -0.05em 0 #fffc00;
+            }
+
+            49% {
+                text-shadow: -0.05em -0.025em 0 #00fffc, 0.025em 0.035em 0 #fc00ff,
+                    -0.05em -0.05em 0 #fffc00;
+            }
+
+            50% {
+                text-shadow: 0.05em 0.035em 0 #00fffc, 0.03em 0 0 #fc00ff,
+                    0 -0.04em 0 #fffc00;
+            }
+
+            99% {
+                text-shadow: 0.05em 0.035em 0 #00fffc, 0.03em 0 0 #fc00ff,
+                    0 -0.04em 0 #fffc00;
+            }
+
+            100% {
+                text-shadow: -0.05em 0 0 #00fffc, -0.025em -0.04em 0 #fc00ff,
+                    -0.04em -0.025em 0 #fffc00;
+            }
+        }
+
+        h1 {
+            animation: glitch 1s linear infinite;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="matrix" class="matrix-effect"></canvas>
+
+    <div class="agent-header">
+        <h1>SYSTEM DOSTĘPU DO ZASOBÓW</h1>
+        <div class="agent-status" id="agentStatus">Inicjalizacja systemu...</div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-button active" onclick="openTab('pliki')">PLIKI</button>
+        <button class="tab-button" onclick="openTab('starsze')">STARSZE APLIKACJE</button>
+        <button class="tab-button" onclick="openTab('opinie')">WYSTAW OPINIĘ</button>
+    </div>
+
+    <div id="pliki" class="tab-content active">
+        <div class="program-list">
+            <div class="program-item">
+                <h3>Literka</h3>
+                <p>Program do edycji tekstu. Wymagania: Windows 11, JAVA.</p>
+                <a download name="literka_installer-version1.0.jar" href="/files/literka/literka_installer-version1.0.jar" class="download-button">POBIERZ</a>
+            </div>
+
+            
+            </div>
+        </div>
+    </div>
+
+    <div id="starsze" class="tab-content">
+       <div class="program-item">
+                <h3>Twój pędzel</h3>
+                <p>Zaawansowany program do rysowania.</p>
+                <a download name="Twoj_pedzel.zip" href="/files/Twoj_pedzel.zip" class="download-button">POBIERZ</a>
+            </div>
+
+            <div class="program-item">
+                <h3>Kółko i krzyżyk</h3>
+                <p>Gra w kółko i krzyżyk.</p>
+                <a download name="TicTacToe.zip" href="/files/TicTacToe.zip" class="download-button">POBIERZ</a>
+            </div>
+            
+    </div>
+
+    <div id="opinie" class="tab-content">
+        <div class="program-list">
+            <div class="program-item">
+                <h3>Formularz: Wystaw Opinię</h3>
+                <p>Podziel się swoją opinią na temat naszych usług.</p>
+                <a href="Wystaw_opinie.html" class="download-button">POBIERZ FORMULARZ</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Matrix effect
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        const chars = "アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const charArray = chars.split('');
+        const columns = width / 20;
+        const drops = new Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.fillStyle = '#0F0';
+            ctx.font = '15px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = charArray[Math.floor(Math.random() * charArray.length)];
+                ctx.fillText(text, i * 20, drops[i] * 20);
+
+                if (drops[i] * 20 > height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        function openTab(tabName) {
+            const tabContents = document.getElementsByClassName('tab-content');
+            const tabButtons = document.getElementsByClassName('tab-button');
+
+            for (let content of tabContents) {
+                content.classList.remove('active');
+            }
+
+            for (let button of tabButtons) {
+                button.classList.remove('active');
+            }
+
+            document.getElementById(tabName).classList.add('active');
+            event.currentTarget.classList.add('active');
+
+            // Update agent status
+            const statusMessages = {
+                'pliki': 'Dostęp do plików...',
+                'opinie': 'Przygotuj się na wystawienie opinii...'
+            };
+            updateStatus(statusMessages[tabName]);
+        }
+
+        function updateStatus(message) {
+            const status = document.getElementById('agentStatus');
+            status.style.color = '#00ff00';
+            status.textContent = message;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStatus('System gotowy do użycia...');
+            const firstTab = document.querySelector('.tab-button');
+            if (firstTab) {
+                firstTab.click();
+            }
+        });
+
+        // Continue Matrix effect
+        setInterval(drawMatrix, 50);
+    </script>
+</body>
+
+</html>
