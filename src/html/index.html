@@ -187,6 +187,7 @@
         <button class="tab-button active" onclick="openTab('pliki')">PLIKI</button>
         <button class="tab-button" onclick="openTab('starsze')">STARSZE APLIKACJE</button>
         <button class="tab-button" onclick="openTab('opinie')">WYSTAW OPINIĘ</button>
+        <button class="tab-button" onclick="openTab('qrcode')">KOD QR</button>
     </div>
 
     <div id="pliki" class="tab-content active">
@@ -223,6 +224,20 @@
                 <h3>Formularz: Wystaw Opinię</h3>
                 <p>Podziel się swoją opinią na temat naszych usług.</p>
                 <a href="Wystaw_opinie.html" class="download-button">POBIERZ FORMULARZ</a>
+            </div>
+        </div>
+    </div>
+
+     <div id="qrcode" class="tab-content">
+        <div class="program-list">
+            <div class="program-item">
+                <h3>Kod QR Strony</h3>
+                <p>Zeskanuj ten kod QR aby otworzyć stronę na urządzeniu mobilnym lub pobierz go i udostępnij innym.</p>
+                <div style="text-align: center; margin: 20px 0;">
+                    <img src="/img/qr.jpg" alt="Kod QR strony" height="200" width="200" style="margin-bottom: 20px;">
+                    <br>
+                    <a href="/img/qr.jpg" download class="download-button">POBIERZ KOD QR</a>
+                </div>
             </div>
         </div>
     </div>
@@ -280,7 +295,9 @@
             // Update agent status
             const statusMessages = {
                 'pliki': 'Dostęp do plików...',
-                'opinie': 'Przygotuj się na wystawienie opinii...'
+                'starsze': 'Dostęp do starszych aplikacji...',
+                'opinie': 'Przygotuj się na wystawienie opinii...',
+                'qrcode': 'Przygotuj się na zeskanowanie kodu QR...'
             };
             updateStatus(statusMessages[tabName]);
         }
