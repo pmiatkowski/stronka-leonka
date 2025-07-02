@@ -65,6 +65,23 @@ jobs:
       - name: Docker down
         run: |
           ssh -p ${{ secrets.PORT }} ${{ secrets.SSH_USER }}@${{ secrets.HOST }} "cd ${{ secrets.REMOTE_PATH }} && docker-compose down"
+      
+      
+
+      - name: Remove unused container
+        run: docker system prune -af --volumes
+
+      - name: Clean up the Docker build cache
+        run: docker builder prune -af
+      
+      - name: Remove old images
+        run: docker image prune -af
+
+      - name: Remove temp files
+        run: rm -rf /tmp/*
+
+      - name: APK cleanup
+        run: apk cache clean
 
       - name: Deploy files via SSH
         run: |
