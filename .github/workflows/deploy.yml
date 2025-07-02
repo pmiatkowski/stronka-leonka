@@ -25,6 +25,7 @@ jobs:
       DB_USER: ${{ secrets.DB_USER }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       SERVICE_PORT: ${{ secrets.SERVICE_PORT }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
     
     steps:
       - name: Display deployment reason
@@ -58,6 +59,7 @@ jobs:
           DB_USER=${{ env.DB_USER }}
           DB_PASSWORD=${{ env.DB_PASSWORD }}
           SERVICE_PORT=${{ env.SERVICE_PORT }}
+          ADMIN_PASSWORD=${{ env.ADMIN_PASSWORD }}
           EOF"
 
       - name: Docker down
