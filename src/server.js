@@ -21,6 +21,12 @@ const pool = new Pool({
 // Initialize admin table on server start
 async function initializeAdminTable() {
     try {
+        // Verify admin password is set
+        if (!process.env.ADMIN_PASSWORD) {
+            throw new Error('ADMIN_PASSWORD environment variable is not set');
+        }
+
+        // Create table if not exists
         await pool.query(`
             CREATE TABLE IF NOT EXISTS admin_settings (
                 id SERIAL PRIMARY KEY,
@@ -29,49 +35,40 @@ async function initializeAdminTable() {
             )
         `);
 
-        const result = await pool.query(
+        // First, try to update existing password
+        const updateResult = await pool.query(
+            'UPDATE admin_settings SET setting_value = $1 WHERE setting_name = $2 RETURNING *',
+            [process.env.ADMIN_PASSWORD.trim(), 'admin_password']
+        );
+
+        // If no row was updated, insert new password
+        if (updateResult.rowCount === 0) {
+            await pool.query(
+                'INSERT INTO admin_settings (setting_name, setting_value) VALUES ($1, $2)',
+                ['admin_password', process.env.ADMIN_PASSWORD.trim()]
+            );
+            console.log('Admin password initialized successfully');
+        } else {
+            console.log('Admin password updated successfully');
+        }
+
+        // Verify password was set correctly
+        const verifyResult = await pool.query(
             'SELECT setting_value FROM admin_settings WHERE setting_name = $1',
             ['admin_password']
         );
 
-        if (result.rows.length === 0) {
-            // Sanitize admin password by trimming whitespace
-            const adminPassword = process.env.ADMIN_PASSWORD ? process.env.ADMIN_PASSWORD.trim() : '';
-            if (!adminPassword) {
-                console.error('Warning: ADMIN_PASSWORD environment variable is empty or not set');
-                return;
-            }
-
-            await pool.query(
-                'INSERT INTO admin_settings (setting_name, setting_value) VALUES ($1, $2)',
-                ['admin_password', adminPassword]
-            );
-            console.log('Admin password initialized successfully');
-        } else {
-            console.log('Admin password already exists in database');
+        if (verifyResult.rows.length === 0) {
+            throw new Error('Failed to initialize admin password');
         }
 
-        // Verify the stored password matches the environment variable
-        const storedPassword = result.rows[0]?.setting_value;
-        const envPassword = process.env.ADMIN_PASSWORD?.trim();
-        if (storedPassword && envPassword && storedPassword !== envPassword) {
-            console.log('Warning: Stored admin password differs from environment variable');
-            // Update the password to match environment variable
-            await pool.query(
-                'UPDATE admin_settings SET setting_value = $1 WHERE setting_name = $2',
-                [envPassword, 'admin_password']
-            );
-            console.log('Admin password updated to match environment variable');
-        }
-
-        console.log('Admin settings initialized successfully');
+        console.log('Admin settings verified successfully');
+        return true;
     } catch (error) {
         console.error('Error initializing admin settings:', error);
+        throw error; // Re-throw to handle in startup
     }
 }
-
-// Initialize admin settings on server start
-initializeAdminTable();
 
 // Middleware
 app.use(express.json());
@@ -98,10 +95,8 @@ async function authenticateAdmin(req, res, next) {
         const storedPassword = result.rows[0].setting_value;
         const providedPassword = adminPassword.trim();
 
-        console.log('Authenticating admin - stored password length:', storedPassword.length);
-        console.log('Provided password length:', providedPassword.length);
-
         if (storedPassword !== providedPassword) {
+            console.log('Invalid admin password attempt');
             return res.status(403).json({ error: 'Invalid admin password' });
         }
 
@@ -159,6 +154,17 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-});
+// Start server only after database is initialized
+async function startServer() {
+    try {
+        await initializeAdminTable();
+        app.listen(port, () => {
+            console.log(`Server is running on port ${port}`);
+        });
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+}
+
+startServer();
