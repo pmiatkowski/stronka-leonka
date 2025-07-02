@@ -160,6 +160,22 @@
             z-index: -1;
             opacity: 0.1;
         }
+
+        .admin-button {
+            background-color: #800000;
+            color: white;
+            border: 1px solid #ff0000;
+            padding: 5px 10px;
+            margin-left: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            float: right;
+        }
+
+        .admin-button:hover {
+            background-color: #a00000;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+        }
     </style>
 </head>
 
@@ -349,11 +365,42 @@
                 opinionElement.className = 'opinion-item';
                 opinionElement.innerHTML = `
                     <button class="delete-button" onclick="deleteOpinion('${report.id}')">Usuń Raport</button>
+                    <button class="admin-button" onclick="deleteOpinionAsAdmin('${report.id}')">Usuń jako Admin</button>
                     <strong>Agent: ${report.identyfikator_agenta}</strong> - Poziom Satysfakcji: <span class="rating-display">${report.poziom_satysfakcji}/5</span><br>
                     <p>${report.raport}</p>
                 `;
                 opinionsList.appendChild(opinionElement);
             });
+        }
+
+        async function deleteOpinionAsAdmin(id) {
+            const adminPassword = prompt('Podaj hasło administratora:');
+            if (!adminPassword) return;
+
+            try {
+                const response = await fetch(`/api/reports/${id}/admin`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ adminPassword })
+                });
+
+                if (!response.ok) {
+                    if (response.status === 403) {
+                        updateStatus('Błąd: Nieprawidłowe hasło administratora', true);
+                    } else {
+                        updateStatus('Błąd podczas usuwania raportu', true);
+                    }
+                    return;
+                }
+
+                fetchOpinions();
+                updateStatus('Raport został pomyślnie usunięty przez administratora');
+            } catch (error) {
+                console.error('Błąd podczas usuwania raportu:', error);
+                updateStatus('Błąd podczas usuwania raportu', true);
+            }
         }
 
         // Initialize

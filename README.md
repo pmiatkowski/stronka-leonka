@@ -28,54 +28,63 @@ Kod zawiera komentarze i dokumentację, które pomagają zrozumieć, jak działa
 - Interfejs webowy z formularzami
 - Walidacja danych wejściowych
 - Obsługa błędów
-- Dockeryzacja dla łatwego wdrożenia
-
-🚧 **Do poprawy (świadomie proste):**
-
-- Brak zaawansowanego systemu autoryzacji
-- Minimalna walidacja bezpieczeństwa
-- Podstawowa obsługa błędów
-- Prosta struktura HTML/CSS
-
-## Dlaczego "dziurawa"?
-
-Aplikacja jest nazywana "dziurawą", ponieważ:
-
-- Skupia się na nauce podstaw, nie na produkcyjnym bezpieczeństwie
-- Ma uproszczoną walidację danych
-- Brakuje zaawansowanych funkcji enterprise
-- To punkt startowy, nie finalizowany produkt
-
-**To nie bug, to feature** - prostota ułatwia naukę i zrozumienie fundamentalnych koncepcji!
-
-## Stack technologiczny
-
-- Node.js v20
-- Express.js v4
-- PostgreSQL 17
-- node-postgres (pg)
-- dotenv (konfiguracja zmiennych środowiskowych)
-- uuid (generowanie identyfikatorów)
-- Docker & Docker Compose
-
-## Wymagania systemowe
-
-- Node.js v20
-- PostgreSQL 17
-- npm (Node Package Manager)
-- Docker & Docker Compose (opcjonalnie)
+- Zarządzanie raportami (CRUD)
+- System autoryzacji dla użytkowników i administratorów
+- Dwupoziomowy system usuwania raportów:
+  - Użytkownik (wymaga kodu dostępu)
+  - Administrator (wymaga hasła administratora)
 
 ## Konfiguracja
 
-Serwer wymaga następujących zmiennych środowiskowych (plik `.env`):
+### Zmienne środowiskowe
 
-```
+Serwer wymaga następujących zmiennych w pliku `.env`:
+
+```env
 DB_HOST=db
 DB_NAME=abc
 DB_USER=xyz@
 DB_PASSWORD=your_password
 SERVICE_PORT=3001
+ADMIN_PASSWORD=your_secure_admin_password  # Hasło dla administratora
 ```
+
+### API Endpoints
+
+#### Usuwanie raportu (użytkownik)
+
+`DELETE /api/reports/:id`
+
+Usuwa raport jako użytkownik. Wymaga kodu dostępu.
+
+Request Body:
+
+```json
+{
+  "access_code": "string"
+}
+```
+
+#### Usuwanie raportu (administrator)
+
+`DELETE /api/reports/:id/admin`
+
+Usuwa raport jako administrator. Wymaga hasła administratora.
+
+Request Body:
+
+```json
+{
+  "adminPassword": "string"
+}
+```
+
+Responses:
+
+- `204 No Content` - Raport został pomyślnie usunięty
+- `403 Forbidden` - Nieprawidłowy kod dostępu/hasło administratora
+- `404 Not Found` - Raport nie został znaleziony
+- `500 Internal Server Error` - Błąd serwera
 
 ## Instalacja
 
@@ -88,15 +97,15 @@ git clone <repository-url>
 cd postgres-sql-proxy
 ```
 
-2. Zainstaluj zależności:
+1. Zainstaluj zależności:
 
 ```bash
 npm install
 ```
 
-3. Skonfiguruj zmienne środowiskowe:
+1. Skonfiguruj zmienne środowiskowe:
    - Skopiuj plik `.env.example` do `.env`
-   - Uzupełnij dane dostępowe do bazy danych w pliku `.env`:doc
+   - Uzupełnij dane dostępowe do bazy danych w pliku `.env`:
 
 ```env
 DB_HOST=postgres_database
@@ -104,16 +113,14 @@ DB_NAME=database_name
 DB_USER=your_username
 DB_PASSWORD=your_password
 SERVICE_PORT=3001
+ADMIN_PASSWORD=haslo_do_usuwania_opinii
 ```
 
-4. Upewnij się, że baza danych zawiera wymaganą tabelę:
+1. Upewnij się, że baza danych zawiera wymaganą tabelę:
 
 ```sql
 CREATE TABLE agent_reports (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    identyfikator_agenta TEXT NOT NULL,
-    raport TEXT,
-    poziom_satysfakcji INTEGER CHECK (poziom_satysfakcji BETWEEN 1 AND 5),
     access_code TEXT
 );
 ```
@@ -130,8 +137,14 @@ cd postgres-sql-proxy
 ```
 
 3. Skonfiguruj zmienne środowiskowe:
-   - Skopiuj plik `.env.example` do `.env`
-   - W przypadku używania Dockera, ustaw `DB_HOST=postgres_database`
+
+```env
+DB_HOST=postgres_database
+DB_NAME=database_name
+DB_USER=your_username
+DB_PASSWORD=your_password
+SERVICE_PORT=3001
+```
 
 4. Uruchom kontenery:
 
