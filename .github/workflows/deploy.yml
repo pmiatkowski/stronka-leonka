@@ -77,11 +77,11 @@ jobs:
       - name: Remove old images
         run: docker image prune -af
 
-      - name: Remove temp files
-        run: rm -rf /tmp/*
+      # - name: Remove temp files
+      #   run: rm -rf /tmp/*
 
-      - name: APK cleanup
-        run: apk cache clean
+      # - name: APK cleanup
+      #   run: apk cache clean
 
       - name: Deploy files via SSH
         run: |
