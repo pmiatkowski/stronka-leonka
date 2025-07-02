@@ -35,10 +35,33 @@ async function initializeAdminTable() {
         );
 
         if (result.rows.length === 0) {
+            // Sanitize admin password by trimming whitespace
+            const adminPassword = process.env.ADMIN_PASSWORD ? process.env.ADMIN_PASSWORD.trim() : '';
+            if (!adminPassword) {
+                console.error('Warning: ADMIN_PASSWORD environment variable is empty or not set');
+                return;
+            }
+
             await pool.query(
                 'INSERT INTO admin_settings (setting_name, setting_value) VALUES ($1, $2)',
-                ['admin_password', process.env.ADMIN_PASSWORD]
+                ['admin_password', adminPassword]
             );
+            console.log('Admin password initialized successfully');
+        } else {
+            console.log('Admin password already exists in database');
+        }
+
+        // Verify the stored password matches the environment variable
+        const storedPassword = result.rows[0]?.setting_value;
+        const envPassword = process.env.ADMIN_PASSWORD?.trim();
+        if (storedPassword && envPassword && storedPassword !== envPassword) {
+            console.log('Warning: Stored admin password differs from environment variable');
+            // Update the password to match environment variable
+            await pool.query(
+                'UPDATE admin_settings SET setting_value = $1 WHERE setting_name = $2',
+                [envPassword, 'admin_password']
+            );
+            console.log('Admin password updated to match environment variable');
         }
 
         console.log('Admin settings initialized successfully');
@@ -57,13 +80,28 @@ app.use(express.json());
 async function authenticateAdmin(req, res, next) {
     const { adminPassword } = req.body;
     
+    if (!adminPassword) {
+        return res.status(403).json({ error: 'Admin password is required' });
+    }
+
     try {
         const result = await pool.query(
             'SELECT setting_value FROM admin_settings WHERE setting_name = $1',
             ['admin_password']
         );
 
-        if (result.rows.length === 0 || result.rows[0].setting_value !== adminPassword) {
+        if (result.rows.length === 0) {
+            console.error('Admin password not found in database');
+            return res.status(500).json({ error: 'Admin settings not initialized' });
+        }
+
+        const storedPassword = result.rows[0].setting_value;
+        const providedPassword = adminPassword.trim();
+
+        console.log('Authenticating admin - stored password length:', storedPassword.length);
+        console.log('Provided password length:', providedPassword.length);
+
+        if (storedPassword !== providedPassword) {
             return res.status(403).json({ error: 'Invalid admin password' });
         }
 
